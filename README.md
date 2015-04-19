@@ -11,9 +11,11 @@ Treść zadania w zadanko.html.
 # Uruchamianie
 1. Na początku uruchamiamy serwer ```./serwer```.
 2. Uruchamiamy jeden ze skryptów z parametrem ```-s <nazwa lub IP serwera>``` (domyślnie localhost).
-player.sh - odtwarza sample.mp3 (jednocześnie wysyła i odbiera dźwięk)
-sender.sh - tylko wysyła dźwięk
-receiver.sh - tylko odbiera dźwięk
+
+Skrypty:
+- player.sh - odtwarza sample.mp3 (jednocześnie wysyła i odbiera dźwięk)
+- sender.sh - tylko wysyła dźwięk
+- receiver.sh - tylko odbiera dźwięk
 
 Można się pobawić odpalając kilka skryptów naraz.
 
