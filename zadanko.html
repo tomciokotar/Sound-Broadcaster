@@ -1,0 +1,192 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+</head><body><div id="region-main-wrap">
+                    <div id="region-main">
+                        <div class="region-content">
+                            <span id="maincontent"></span><h2 id="pageheading" class="main">Zadanie zaliczeniowe --- E-ognisko</h2><div class="box generalbox center clearfix"><div class="no-overflow"><p></p>
+<p><span style="line-height: 1.4;">Fajnie byłoby móc zorganizować ognisko... wirtualne, takie z gitarą lub karaoke. </span><span style="line-height: 1.4;">Napisz
+ w dwa programy: serwer i klient, dzięki którym będzie można przekazywać
+ dźwięk (lub inne dane) pomiędzy wieloma klientami.</span></p>
+<p><span style="line-height: 1.4;"></span><span style="font-size: 1.5em; font-weight: bold; line-height: 1.4;">"Zmienne" użyte w treści</span></p>
+<ul>
+<li><span style="line-height: 1.4;">PORT - numer portu, z którego korzysta serwer do komunikacji (zarówno TCP, jak i UDP), domyślnie 10000 + (numer_albumu % 10000)</span><span style="line-height: 1.4;">; ustawiany parametrem -p serwera, opcjonalnie też klient (patrz opis)</span></li>
+<li><span style="line-height: 1.4;">SERVER_NAME - nazwa lub adres IP serwera, z którym powinien połączyć się klient, ustawiany parametrem -s klienta</span></li>
+<li><span style="line-height: 1.4;">FIFO_SIZE - rozmiar w bajtach 
+kolejki FIFO, którą serwer utrzymuje dla każdego z klientów; ustawiany 
+parametrem -F serwera, domyślnie 10560</span></li>
+<li><span style="line-height: 1.4;">FIFO_LOW_WATERMARK - opis w treści; ustawiany parametrem -L serwera, domyślnie 0</span></li>
+<li><span style="line-height: 1.4;">FIFO_HIGH_WATERMARK - opis w treści; ustawiany parametrem -H serwera, domyślnie równy FIFO_SIZE</span></li>
+<li><span style="line-height: 1.4;">BUF_LEN - rozmiar (w datagramach) bufora pakietów wychodzących, ustawiany parametrem -X serwera, domyślnie 10</span></li>
+<li>RETRANSMIT_LIMIT - opis w treści; ustawiany parametrem -X klienta, domyślnie 10</li>
+<li>TX_INTERVAL - czas (w milisekundach) pomiędzy kolejnymi wywołaniami miksera, ustawiany parametrem -i serwera; domyślnie: 5ms</li>
+</ul>
+<h2>Serwer</h2>
+<p>Serwer to nic innego jak duży mikser --- odbiera dane od wielu 
+klientów, następnie miesza je wszystkie, otrzymując w efekcie jeden 
+strumień danych. Następnie przesyła zmieszane dane z powrotem do 
+wszystkich klientów. Opisana procedura odbywa się przy pomocy protokołu 
+UDP.</p>
+<p>Serwer nasłuchuje na porcie PORT, zarówno na TCP, jak i na UDP. 
+Połączenie TCP w zasadzie służy jedynie do wykrywania, że połączenie 
+zostało przerwane. Protokół opisany jest dalej.</p>
+<p>Dla każdego klienta serwer powinien utrzymywać kolejkę FIFO wielkości
+ FIFO_SIZE bajtów. Kolejka może być w jednym z dwóch stanów:</p>
+<ul>
+<li>FILLING - stan początkowy, a także ustalany wtedy, gdy liczba bajtów w FIFO stanie się mniejsza bądź równa FIFO_LOW_WATERMARK,</li>
+<li>ACTIVE - stan ustalany wtedy, gdy liczba bajtów w FIFO stanie się większa bądź rowna FIFO_HIGH_WATERMARK.</li>
+</ul>
+<p>Dane odebrane od klienta umieszczane są w kolejce z nim związanej. 
+Jeśli w kolejce nie ma miejsca, serwer nie powinien próbować czytać 
+danych od tego klienta.</p>
+<p><span style="line-height: 1.4;">Poza tym co TX_INTERVAL serwer 
+konstruuje datagram wyjściowy, przekazując dane z tych kolejek, które są
+ w stanie ACTIVE, do poniższej funkcji miksującej, która powinna być 
+umieszczona w osobnym pliku.</span></p>
+<p><span style="font-family: 'courier new', courier, monospace;">struct mixer_input {</span><br><span style="font-family: 'courier new', courier, monospace;">  void* data;       // Wskaźnik na dane w FIFO</span><br><span style="font-family: 'courier new', courier, monospace;">  size_t len;       // Liczba dostępnych bajtów</span><br><span style="font-family: 'courier new', courier, monospace;">  size_t cons<span style="font-family: 'courier new', courier, monospace;">umed;  // Wartość ustawiana przez mikser, wskazująca, ile bajtów należy</span><br>                    // usunąć z FIFO.</span><br><span style="font-family: 'courier new', courier, monospace;">} </span></p>
+<p><span style="font-family: 'courier new', courier, monospace;">void mixer(<br>  struct mixer_input* inputs, size_t n,  // tablica struktur mixer_input, po jednej strukturze na każdą<br>                                         // kolejkę FIFO w stanie ACTIVE<br>  void* output_buf,                      // bufor, w którym mikser powinien umieścić dane do wysłania<br>  size_t* output_size,                   // początkowo rozmiar output_buf, następnie mikser umieszcza<br>                                         // w tej zmiennej liczbę bajtów zapisanych w output_buf<br>  unsigned long tx_interval_ms           // wartość zmiennej TX_INTERVAL<br>);</span></p>
+<p>Domyślna implementacja powinna zakładać, że danymi w FIFO są liczby 
+16-bitowe ze znakiem, a na wyjście chcemy sumować odpowiadające sobie 
+wartości. Każde wywołanie powinno wyprodukować dane długości <em>176*tx_interval_ms</em>
+ bajtów. Jeśli w którejś z kolejek jest mniej danych, trzeba założyć, że
+ reszta to zera. Ewentualne przepełnienia należy obciąć do granicznych 
+wartości typu 16-bitowego.</p>
+<p>Zwrócone w <em>output_buf/output_size</em> dane serwer wysyła przez UDP do wszystkich klientów (datagramy są wysyłane nawet jeśli <em>output_size </em>== 0).</p>
+<p>Należy zwrócić uwagę na to, żeby dane rzeczywiście były przesyłane 
+średnio co TX_INTERVAL czasu, to ważne w przypadku danych audio. Często 
+powtarzające się trzaski bądź przerwy mogą mieć związek z nieodpowiednią
+ szybkością transmisji. Pojedyncze trzaski są dopuszczalne, trudno 
+bowiem zapewnić powtarzalny czas odpowiedzi systemu na zdarzenia w 
+skali, o której mowa w zadaniu. Będzie też pewna rozbieżność w szybkości
+ zegarów pomiędzy komputerami w sieci. Prawdziwe systemy przesyłania 
+multimediów korzystają z różnych algorytmów synchronizacji takich 
+strumieni.</p>
+<p><span style="line-height: 1.4;">Serwer powinien się zakończyć po odebraniu sygnału SIGINT (Ctrl-C).</span></p>
+<h2>Klient</h2>
+<p>Klient przekazuje dane ze standardowego wejścia do serwera oraz jednocześnie z serwera na standardowe wyjście.</p>
+<p>Jeśli klient otrzyma z linii komend argument -s, łączy się z serwerem
+ o podanej nazwie (DNS-owej) lub adresie IP, na port przekazany ew. 
+parametrem -p.</p>
+<p><span style="line-height: 1.4;">Po wyczerpaniu danych ze 
+standardowego wejścia klient się nie kończy, natomiast nadal przyjmuje 
+dane z serwera. Klient powinien się zakończyć po odebraniu sygnału 
+SIGINT (Ctrl-C).</span></p>
+<p><span style="line-height: 1.4;">Numery portów klienta powinny być dynamicznie przydzielone przez system.</span></p>
+<h2>Protokół</h2>
+<p>Zdefiniowany poniżej format danych powinien umożliwiać komunikację 
+między programami różnych autorów. Nie wolno zmieniać tego formatu ani 
+go rozszerzać. W razie wątpliwości proszę pytać na forum.</p>
+<h3>Format strumienia TCP</h3>
+<p>Na początku klient nawiązuje połączenie TCP z serwerem. Po odebraniu połączenia serwer wysyła linijkę</p>
+<p><span style="font-family: 'courier new', courier, monospace;">CLIENT <em>clientid</em>\n</span></p>
+<p>gdzie clientid jest 32-bitową liczbą (zapisaną tekstem), 
+identyfikującą połączenie. Po odebraniu takiej linii klient inicjuje 
+komunikację po UDP (patrz niżej). Następnie serwer okresowo, co ok. 
+sekundę przesyła tym połączeniem raport o wszystkich aktywnych 
+klientach, w następującym formacie:</p>
+<p><em>[gniazdo TCP klienta] FIFO: [bieżąca liczba bajtów w 
+FIFO]/[FIFO_SIZE] (min. [minimalna liczba bajtów w FIFO od ostatniego 
+raportu], max. [maksymalna])\n</em></p>
+<p>Raport powinien być poprzedzony  pustą linią.</p>
+<p>Przykład:</p>
+<p><span style="font-family: 'courier new', courier, monospace;">\n</span><br><span style="font-family: 'courier new', courier, monospace;"><span style="line-height: 1.4;">127.0.0.1:50546 FIFO: 6040/7040 (min. 824, max. 7040)\n<br></span><span style="line-height: 1.4;">127.0.0.1:50547 FIFO: 442/7040 (min. 424, max. 4242)\n</span></span></p>
+<p><span style="font-size: 1.25em; font-weight: bold; line-height: 1;">Format datagramów UDP</span></p>
+<p><span style="font-family: 'courier new', courier, monospace;">CLIENT <em>clientid</em>\n</span></p>
+<p>Wysyłany przez klienta jako pierwszy datagram UDP. Parametr <em>clientid</em> powinien być taki sam jak odebrany od serwera w połączeniu TCP.</p>
+<p><span style="font-family: 'courier new', courier, monospace;">UPLOAD <em>nr</em>\n</span><br><span style="font-family: 'courier new', courier, monospace;">[dane]</span></p>
+<p><span style="line-height: 1.4;">Wysyłany przez klienta datagram z danymi. </span><em style="line-height: 1.4;">Nr</em><span style="line-height: 1.4;">
+ to numer datagramu, zwiększany o jeden przy każdym kolejnym fragmencie 
+danych. Taki datagram może być wysłany tylko po uprzednim odebraniu 
+wartości </span><em style="line-height: 1.4;">ack</em><span style="line-height: 1.4;"> (patrz ACK lub DATA) równej </span><em style="line-height: 1.4;">nr</em><span style="line-height: 1.4;"> oraz nie może zawierać więcej danych niż ostatnio odebrana wartość </span><em style="line-height: 1.4;">win</em><span style="line-height: 1.4;">.</span></p>
+<p><span style="font-family: 'courier new', courier, monospace;">DATA <em>nr ack win</em>\n</span><br><span style="font-family: 'courier new', courier, monospace;">[dane]</span></p>
+<p>Wysyłany przez serwer datagram z danymi. <em>Nr</em> to numer 
+datagramu, zwiększany o jeden przy każdym kolejnym fragmencie danych; 
+służy do identyfikacji datagramów na potrzeby retransmisji. <em>Ack</em> to numer kolejnego datagramu (patrz UPLOAD) oczekiwanego od klienta, a win to liczba wolnych bajtów w FIFO.</p>
+<p><span>Dane należy przesyłać w formie binarnej, dokładnie tak, jak wyprodukował je mikser.</span></p>
+<p><span style="font-family: 'courier new', courier, monospace;">ACK<em> ack win</em>\n</span><br><span style="text-decoration: line-through; color: #99cc00;"></span></p>
+<p>Wysyłany przez serwer datagram potwierdzający otrzymanie danych. Jest
+ wysyłany po odebraniu każdego poprawnego datagramu UPLOAD. Znaczenie <em>ack</em> i <em>win</em> -- patrz DATA.</p>
+<p><span style="line-height: 1.4; font-family: 'courier new', courier, monospace;">RETRANSMIT <em>nr</em>\n</span></p>
+<p><span style="line-height: 1.4;">Wysyłana przez klienta do serwera prośba o ponowne przesłanie wszystkich dostępnych datagramów o numerach większych lub równych <em>nr</em>.</span></p>
+<p><span style="font-family: 'courier new', courier, monospace;">KEEPALIVE\n</span></p>
+<p><span>Wysyłany przez klienta do serwera 10 razy na sekundę.</span></p>
+<h2>Wykrywanie kłopotów z połączeniem</h2>
+<p>W przypadku wykrycia kłopotów z połączeniem przez klienta, powinien 
+on zwolnić wszystkie zasoby oraz rozpocząć swoje działanie od początku, 
+automatycznie, nie częściej jednak niż 2x na sekundę. Tylko w przypadku 
+kłopotów, co do których można oczekiwać, że bez sensu jest spróbować 
+ponownie (np. zły format argumentów), klient powinien się zakończyć. 
+Uznajemy, że w przypadku niemożności połączenia z serwerem, próbujemy do
+ skutku.</p>
+<p>W przypadku wykrycia kłopotów z połączeniem przez serwer, powinien on
+ zwolnić wszystkie zasoby związane z tym klientem. Klient pewnie 
+spróbuje ponownie.</p>
+<p>Jeśli serwer przez sekundę nie odbierze żadnego datagramu UDP, uznaje
+ połączenie za kłopotliwe. Zezwala się jednakże na połączenia TCP bez 
+przesyłania danych UDP, jeśli się chce zobaczyć tylko raporty.</p>
+<p>Jeśli klient przez sekundę nie otrzyma żadnych danych od serwera 
+(choćby pustego datagramu DATA), uznaje połączenie za kłopotliwe.</p>
+<p>Jeśli połączenie TCP zostanie przerwane, to też uznaje się je za kłopotliwe. :)</p>
+<h2><span>Retransmisje klient -&gt; serwer</span></h2>
+<p><span style="line-height: 1.4;">Jeśli klient otrzyma dwukotnie 
+datagram DATA, bez potwierdzenia ostatnio wysłanego datagramu, powinien 
+ponowić wysłanie ostatniego datagramu.</span></p>
+<h2>Retransmisje serwer -&gt; klient</h2>
+<p><span style="line-height: 1.4;">Serwer nadaje strumienie danych przy 
+pomocy UDP. Może się zdarzyć zatem, że niektóre datagramy nie dotrą do 
+adresata. Serwer powinien posiadać bufor (algorytmicznie to jest kolejka
+ FIFO, jednakże unikam tej nazwy, żeby nie mylić z odbiorczymi kolejkami
+ FIFO serwera), w którym pamięta ostatnich BUF_LEN nadanych datagramów.</span></p>
+<p><span style="line-height: 1.4;">Jeśli klient otrzyma datagram z numerem (ozn. </span><em style="line-height: 1.4;">nr_recv</em><span style="line-height: 1.4;">) większym niż kolejny oczekiwany (ozn. </span><em style="line-height: 1.4;">nr_expected</em><span style="line-height: 1.4;">), powinien:</span></p>
+<ul>
+<li><span style="line-height: 1.4;">ów datagram porzucić, ale wysłać w odpowiedzi datagram "RETRANSMIT <em>nr_expected</em>", jeśli <em>nr_expected</em> &gt;= <em>nr_recv</em> - RETRANSMIT_LIMIT,</span></li>
+<li><span style="line-height: 1.4;">ów datagram przyjąć oraz uznać, że poprzedzających nie uda mu się nigdy odebrać (czyli <em>nr_expected</em> := <em>nr_recv</em> + 1) w p. p.</span></li>
+</ul>
+<p>Jeśli klient otrzyma datagram z numerem mniejszym niż kolejny oczekiwany, powinien ów datagram porzucić.</p>
+<p>Żeby zapobiec jendak nadmiarowi retransmisji, klient pamięta masymalny numer <em>nr_max_seen</em>
+ otrzymanego datagramu DATA (licząc porzucone) i nigdy nie wysyła prośby
+ o retransmisję w odpowiedzi na datagram, który nie zwiększa wartości <em>nr_max_seen</em>.</p>
+
+
+
+
+
+<p><span style="font-size: 1.5em; font-weight: bold; line-height: 1.4;">Wymagana wydajność</span></p>
+<p>Przy uruchomieniu 10-ciu klientów (przykładowymi skryptami) i serwera
+ na lokalnym komputerze, a także w lokalnej sieci, średnie opóźnienie 
+odtwarzania nie powinno być większe niż 100ms.</p>
+<p><span style="line-height: 1.4;">Praktycznie, nie teoretycznie, tzn. 
+opóźnienie można zmierzyć jako różnicę czasu pomiędzy odczytaniem a 
+wypisaniem tych samych danych przez klienta. Ten pomiar nie uwzględnia 
+oczywiście opóźnień w linuksowym systemie dźwięku, i o to chodzi.</span></p>
+
+
+
+
+
+
+
+
+
+<h2>Ustalenia wspólne i końcowe</h2>
+<p>Programy zaliczeniowe muszą być tak napisane, żeby obsługa 
+poszczególnych gniazd nie przerywała obsługi pozostałych, tzn. obsługę 
+połączeń należy zlecić osobnym procesom/wątkom lub zastosować mechanizm 
+select/poll lub podobny. Należy także wyłączyć algorytm Nagle'a dla 
+połączeń TCP. Można założyć, że standardowe wejście/wyjście procesów 
+obsługuje select/poll (jeśli nie, można wypisać stosowny komunikat i 
+zakończyć proces z błędem).</p>
+<p>Programy powinny obsługiwać zarówno komunikację IPv4, jak i IPv6, jak
+ jest to pokazane w materiałach do labów. Dotyczy to w szczególności 
+obsługi parametru -s klienta.</p>
+<p>Programy można pisać w C lub w C++(11). Należy używać API poznanych 
+na laboratoriach, nie wykorzystywać bibliotek, które je opakowują, poza 
+libevent oraz Boost:ASIO.</p>
+<p>Ewentualne komunikaty diagnostyczne należy wypisywać na standardowe wyjście błędów.</p>
+<p>Do rozwiązania należy dołączyć Makefile.</p>
+
+
+
+</div></div>                        </div>
+                    </div>
+                </div>
+</body></html>
