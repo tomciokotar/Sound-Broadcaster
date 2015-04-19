@@ -6,10 +6,10 @@ Zadanie zaliczeniowe z sieci komputerowych.
 Treść zadania w zadanko.html.
 
 # Kompilacja
-```make``` (wymagany Boost)
+```$ make``` (wymagany Boost)
 
 # Uruchamianie
-1. Na początku uruchamiamy serwer ```./serwer```.
+1. Na początku uruchamiamy serwer ```$ ./serwer```.
 2. Uruchamiamy jeden ze skryptów z parametrem ```-s <nazwa lub IP serwera>``` (domyślnie localhost).
 
 Skrypty:
@@ -20,8 +20,8 @@ Skrypty:
 Można się pobawić odpalając kilka skryptów naraz.
 
 # Parametry
-- ```./serwer -p <port>```
-- ```./player.sh -s <serwer> -p <port>```
-- ```./sender.sh -s <serwer> -p <port>```
-- ```./receiver.sh -s <serwer> -p <port>```
+- ```$ ./serwer -p <port>```
+- ```$ ./player.sh -s <serwer> -p <port>```
+- ```$ ./sender.sh -s <serwer> -p <port>```
+- ```$ ./receiver.sh -s <serwer> -p <port>```
 
