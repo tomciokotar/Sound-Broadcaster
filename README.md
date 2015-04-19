@@ -20,8 +20,8 @@ Skrypty:
 Można się pobawić odpalając kilka skryptów naraz.
 
 # Parametry
-```./serwer -p <port>```
-```./player.sh -s <serwer> -p <port>```
-```./sender.sh -s <serwer> -p <port>```
-```./receiver.sh -s <serwer> -p <port>```
+- ```./serwer -p <port>```
+- ```./player.sh -s <serwer> -p <port>```
+- ```./sender.sh -s <serwer> -p <port>```
+- ```./receiver.sh -s <serwer> -p <port>```
 
