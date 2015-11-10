@@ -1,27 +1,29 @@
-# Sieci
-Aplikacja napisana przy użyciu Boost.Asio do przesyłania dźwięku po sieci pomiędzy wieloma klientami (taki mini Skype). Cała trudność polegała na ręcznej obsłudze wszystkich pakietów TCP/UDP według zadanego protokołu.
+# Sound Broadcaster
+An application developed using Boost.Asio being able to broadcast sound via network to multiple clients (aka mini-Skype). It uses it's own, manually implemented TCP/UDP protocol.
 
-Zadanie zaliczeniowe z sieci komputerowych.
+A project from Computer networks course.
 
-Treść zadania w zadanko.html.
+Full task description (in Polish): task.html
 
-# Kompilacja
-```$ make``` (wymagany Boost)
+Requirements: Boost and sox with mp3 support
 
-# Uruchamianie
-1. Na początku uruchamiamy serwer ```$ ./serwer```.
-2. Uruchamiamy jeden ze skryptów z parametrem ```-s <nazwa lub IP serwera>``` (domyślnie localhost).
+# Compilation
+```$ make```
 
-Skrypty:
-- player.sh - odtwarza sample.mp3 (jednocześnie wysyła i odbiera dźwięk)
-- sender.sh - tylko wysyła dźwięk
-- receiver.sh - tylko odbiera dźwięk
+# How to run
+1. Run the server with ```$ ./server```.
+2. Run one of the scripts with parameter ```-s <server's name or IP address>``` (localhost by default).
 
-Można się pobawić odpalając kilka skryptów naraz.
+Scripts:
+- player.sh - plays sample.mp3 (sends and receives sound at the same time)
+- sender.sh - just sends the sound from sample.mp3
+- receiver.sh - receives the sound only
 
-# Parametry
-- ```$ ./serwer -p <port>```
-- ```$ ./player.sh -s <serwer> -p <port>```
-- ```$ ./sender.sh -s <serwer> -p <port>```
-- ```$ ./receiver.sh -s <serwer> -p <port>```
+You can try running a few different scripts at the same time.
+
+# Parameters
+- ```$ ./server -p <port>```
+- ```$ ./player.sh -s <server> -p <port>```
+- ```$ ./sender.sh -s <server> -p <port>```
+- ```$ ./receiver.sh -s <server> -p <port>```
 

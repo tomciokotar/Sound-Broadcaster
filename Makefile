@@ -1,12 +1,12 @@
-TARGET: klient serwer
+TARGET: client server
 
-klient: klient.cpp
-	g++ klient.cpp -std=c++11 -o klient -lboost_system -lpthread -lboost_regex -lboost_program_options
+client: client.cpp
+	g++ client.cpp -std=c++11 -o client -lboost_system -lpthread -lboost_regex -lboost_program_options
 
-serwer: serwer.cpp mixer.hpp
-	g++ serwer.cpp -std=c++11 -o serwer -lboost_system -lpthread -lboost_regex -lboost_program_options 
+server: server.cpp mixer.hpp
+	g++ server.cpp -std=c++11 -o server -lboost_system -lpthread -lboost_regex -lboost_program_options 
 
 .PHONY: clean TARGET
 clean:
-	rm -f klient serwer *.o *~
+	rm -f client server *.o *~
 
